@@ -120,9 +120,9 @@ p2 <- ggplot(dfData01, aes(sample = Schmidt))+
                   x= "Theoretical Quantile")+
   theme_bw()
 
-png(file = "Series_01.png", width = 350, height = 150)
+#png(file = "Series_01.png", width = 350, height = 150)
 grid.arrange(p0, p1, p2, nrow=1)
-dev.off()
+#dev.off()
 
 ```
 
