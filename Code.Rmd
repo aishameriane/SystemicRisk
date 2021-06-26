@@ -1,0 +1,135 @@
+---
+title: "Computer exercise - Market and Systemic Risk Management"
+author: "A. Schmidt"
+date: "June, 2021"
+output: 
+  pdf_document:
+    extra_dependencies: ["float"]
+header-includes:
+- \usepackage{mathtools}
+urlcolor: blue
+linkcolor: red
+---
+
+
+# Introduction
+
+
+# Dependency installation
+
+```{r, message = FALSE, warning = FALSE, echo = FALSE}
+rm(list=ls())        # Clean memory
+
+# Verify if a package is installed, if not, download and install before loading. 
+chooseCRANmirror(graphics = FALSE, ind = 10)
+if (!require("pacman")) install.packages("pacman")
+pacman::p_load(reshape2, ggplot2, latex2exp, gridExtra, readxl, 
+               RColorBrewer, grid, knitr, zoo, scales)
+
+# Shapper is a wrapper for the Python package with the Shap values. 
+# In case you don't have it on Python, you need to install running the following line
+#shapper::install_shap()
+```
+
+```{r, message = FALSE, warning = FALSE, echo = FALSE}
+# Prevents code from getting out of the page
+## Works with almost everything except urls and strings.
+## Last options hold the position of figures
+opts_chunk$set(tidy.opts=list(width.cutoff=50),tidy=TRUE, fig.pos = "!H", out.extra = "")
+
+# Set a seed
+set.seed(6969)
+
+# Choosing a color palette
+cores <- brewer.pal(8, "Dark2")
+
+# Set a working directory
+setwd("C:\\Users\\aisha\\OneDrive\\Documentos\\Mestrado Tinbergen\\Year 2\\Block 05\\Market and Systemic Risk\\Computational Assignment\\")
+```
+
+
+# Data preparation
+
+
+```{r, eval = FALSE}
+url      <- "https://raw.githubusercontent.com/aishameriane/SystemicRisk/main/data.csv"
+dfData01 <- read.csv2(url, sep = ",", dec = ".", header = TRUE)
+dfData01 <- dfData01[, c("Market", "Schmidt")]
+
+ending   <- as.Date("2021-06-25")
+# Had to cut one day to make vectors with the same size
+starting <- as.Date(as.Date("2021-06-25")-2516)
+Date     <- as.Date(starting:ending, origin=starting)
+
+
+Date <- seq(starting, ending, by = "1 days")
+dfData01 <- cbind(Date, dfData01)
+```
+
+
+# Exploring data
+
+```{r}
+# Data from recessions available at: https://eabcn.org/dc/chronology-euro-area-business-cycles
+recessions_1 <- c("2019Q4")
+
+recessions_2 <- c("2021Q3")
+
+recessions.trim <- data.frame(1, 1,1, 
+                              as.Date(as.yearqtr(recessions_1)), 
+                              as.Date(as.yearqtr(recessions_2)))
+names(recessions.trim) <- c("DATE", "Variable", "Value", "Peak", "Trough")
+
+
+dfData02 <- melt(dfData01, id.vars = "Date")
+names(dfData02) <- c("DATE", "Variable", "Value")
+
+p0 <- ggplot(dfData02[which(dfData02$Variable == "Schmidt"), ]) +
+        geom_line(aes(x = DATE, y = Value, color = Variable), alpha = 0.9)+
+        labs(y = "Return", x= "", color = "Series") +
+        scale_x_date(date_breaks = "12 months", labels=date_format("%Y"))+ 
+        scale_colour_manual(values = c("#A43E53")) +
+        theme_bw() +
+        theme(axis.text.x = element_text(angle=25, hjust = 1, size = 8), legend.position = "none",
+              axis.title.x = element_blank()) +
+        geom_rect(data=recessions.trim, aes(xmin=Peak, xmax=Trough, ymin=-Inf, ymax=+Inf), fill='grey', alpha=0.2) 
+
+# Plot a histogram with a normal density overlapping
+## Source: https://stackoverflow.com/questions/6967664/ggplot2-histogram-with-normal-curve
+n        <- nrow(dfData01)
+mean     <- mean(dfData01[, "Schmidt"])
+sd       <- sd(dfData01[,"Schmidt"])
+binwidth <- 0.3 
+df       <- data.frame(x = rnorm(n, mean, sd))
+dfData03 <- cbind(dfData01, df)
+
+p1 <- ggplot(dfData03, aes(x = Schmidt, mean = mean, sd = sd, binwidth = binwidth, n = n)) +
+      geom_histogram(binwidth = binwidth, 
+        colour = "#A43E53", fill = "#E9975C", size = 0.1, alpha = 0.4) +
+      stat_function(fun = function(x) dnorm(x, mean = mean, sd = sd) * n * binwidth,
+          color = "#0E1139", size = 1)+
+      labs(title="", y = "Count", 
+                  x= "Rocket Portfolio Returns (%)") +
+      theme_bw()
+
+# Make a QQplot
+p2 <- ggplot(dfData01, aes(sample = Schmidt))+
+  stat_qq(colour = "#E9975C", fill = "#E9975C", size = 1.5, alpha = 0.4) +
+  stat_qq_line(color = "#0E1139", size = 1)+
+  labs(title="", y = "Sample Quantile", 
+                  x= "Theoretical Quantile")+
+  theme_bw()
+
+png(file = "Series_01.png", width = 350, height = 150)
+grid.arrange(p0, p1, p2, nrow=1)
+dev.off()
+
+```
+
+
+
+
+
+
+
+
