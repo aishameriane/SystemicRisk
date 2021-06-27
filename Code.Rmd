@@ -307,6 +307,7 @@ kstar = 170
 alphastar <- dfHill[which(dfHill$statistics == kstar), "Estimate"]
 print(alphastar)
 
+aaa
 
 ```
 
